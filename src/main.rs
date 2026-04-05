@@ -1,3 +1,6 @@
+mod cli;
+mod cli_commands;
+
 fn main() {
-    println!("Hello, world!");
+    cli::build_cli().get_matches();
 }
