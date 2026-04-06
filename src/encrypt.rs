@@ -17,10 +17,9 @@ pub fn generate_password_hash(plain_password: &str) -> Result<String, Box<dyn st
     let password = plain_password.as_bytes();
     let salt = SaltString::generate(&mut OsRng);
 
-    let password_hash = Argon2::default()
+    Ok(Argon2::default()
         .hash_password(password, &salt)?
-        .to_string();
-    Ok(password_hash)
+        .to_string())
 }
 
 /// Checks if a plaintext password matches a given Argon2 hash
@@ -39,6 +38,7 @@ pub fn __check_password_hash(
     password_hash: String,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let parsed_hash = PasswordHash::new(&password_hash)?;
+
     Ok(Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok())
