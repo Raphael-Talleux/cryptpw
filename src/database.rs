@@ -4,6 +4,7 @@
 //! Main pub functions:
 //! - `init()` : initializes the database and the default profile
 
+use crate::encrypt;
 use dialoguer::Password;
 use rusqlite::{Connection, Result};
 
@@ -16,7 +17,7 @@ fn open_connection() -> Result<Connection> {
 ///
 /// - Checks if the "profiles" table exists, and creates it if not.
 /// - Attempts to load the "default" profile, or generates a new one.
-pub fn init() -> Result<()> {
+pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     let db: Connection = open_connection()?;
 
     // Check "profiles" table
@@ -74,7 +75,10 @@ fn generate_profile_table(db: &Connection) -> Result<()> {
 /// ## Notes
 /// - The password input is hidden (no echo in terminal).
 /// - The user is asked to confirm the password before saving.
-fn generate_new_profile(db: &Connection, profile_name: &str) -> Result<()> {
+fn generate_new_profile(
+    db: &Connection,
+    profile_name: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "No data found for '{}'. A new profile will be generated.",
         profile_name
@@ -87,6 +91,8 @@ fn generate_new_profile(db: &Connection, profile_name: &str) -> Result<()> {
             .interact();
 
         if let Ok(password) = password {
+            let password = encrypt::generate_password_hash(&password)?;
+
             db.execute(
                 "INSERT INTO profiles (name, pass_hash) VALUES (?1, ?2)",
                 [profile_name, &password],

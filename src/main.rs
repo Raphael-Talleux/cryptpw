@@ -1,6 +1,7 @@
 mod cli;
 mod cli_commands;
 mod database;
+mod encrypt;
 
 use std::error::Error;
 
