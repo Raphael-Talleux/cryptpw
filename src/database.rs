@@ -4,7 +4,7 @@
 //! Main pub functions:
 //! - `init()` : initializes the database and the default profile
 
-use crate::encrypt;
+use crate::{app_context::AppContext, encrypt};
 use dialoguer::Password;
 use rusqlite::{Connection, Result};
 
@@ -17,8 +17,10 @@ fn open_connection() -> Result<Connection> {
 ///
 /// - Checks if the "profiles" table exists, and creates it if not.
 /// - Attempts to load the "default" profile, or generates a new one.
-pub fn init(profile: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn init(ctx: &AppContext) -> Result<(), Box<dyn std::error::Error>> {
     let db: Connection = open_connection()?;
+
+    let profile = ctx.settings.user_profile.as_deref().unwrap();
 
     // Check "profiles" table
     if !is_table_exist(&db, "profiles")? {

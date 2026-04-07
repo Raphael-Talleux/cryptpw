@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ctx.settings.user_profile = Some(String::from(profile));
 
     // Init database, and check profile validity
-    database::init(&ctx.settings.user_profile.unwrap())?;
+    database::init(&ctx)?;
 
     Ok(())
 }
