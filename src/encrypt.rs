@@ -33,9 +33,9 @@ pub fn generate_password_hash(plain_password: &str) -> Result<String, Box<dyn st
 /// * `Ok(true)` if the password matches the hash
 /// * `Ok(false)` if the password does not match
 /// * `Err` if the provided hash is invalid
-pub fn __check_password_hash(
-    password: String,
-    password_hash: String,
+pub fn check_password_hash(
+    password: &String,
+    password_hash: &String,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let parsed_hash = PasswordHash::new(&password_hash)?;
 

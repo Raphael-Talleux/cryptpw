@@ -106,3 +106,36 @@ fn generate_new_profile(
     println!("Profile created successfully !");
     Ok(())
 }
+
+/// Retrieves the password hash associated with a given profile name.
+///
+/// This function queries the database for the `pass_hash` field
+/// in the `profiles` table using the provided profile name.
+///
+/// # Arguments
+/// * `profile` - The name of the profile to look up.
+///
+/// # Returns
+/// * `Ok(String)` containing the password hash if the profile exists.
+/// * `Ok(None)` if no matching profile is found.
+/// * `Err(...)` if a database error occurs.
+///
+/// # Errors
+/// This function will return an error if:
+/// - The database connection cannot be established.
+/// - The SQL statement fails to prepare or execute.
+/// - The row data cannot be retrieved.
+pub fn get_profile_password_hash(
+    profile: &str,
+) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    let db: Connection = open_connection()?;
+
+    let mut stmt = db.prepare("SELECT pass_hash FROM profiles WHERE name= ?1")?;
+    let mut rows = stmt.query([profile])?;
+
+    if let Some(row) = rows.next()? {
+        Ok(row.get(0)?)
+    } else {
+        Ok(None)
+    }
+}

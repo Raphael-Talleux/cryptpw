@@ -5,12 +5,15 @@
 #[derive(Debug)]
 pub struct AppContext {
     pub settings: Settings,
+
+    pub encryption_key: Option<String>,
 }
 
 impl Default for AppContext {
     fn default() -> Self {
         AppContext {
             settings: Settings::default(),
+            encryption_key: None,
         }
     }
 }

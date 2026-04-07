@@ -3,6 +3,7 @@ mod cli;
 mod cli_commands;
 mod database;
 mod encrypt;
+mod utils;
 
 use app_context::AppContext;
 use clap::ArgMatches;
@@ -19,6 +20,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Init database, and check profile validity
     database::init(&ctx)?;
+
+    // Apply user command
+    match user_command.subcommand() {
+        Some(("add", args)) => {
+            cli_commands::add::exec(&mut ctx, args)?;
+        }
+        _ => {
+            println!("Use --help to see available commands.");
+        }
+    }
 
     Ok(())
 }
