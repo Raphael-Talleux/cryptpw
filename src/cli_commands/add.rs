@@ -48,15 +48,13 @@ pub fn exec(
     let source: &String = args.get_one::<String>("source").expect("Arg invalid");
 
     // Get encryption key from user
-    loop {
+    while ctx.encryption_key.is_none() {
         if let Some(password) = request_profile_password(ctx) {
             if let Some(hash) =
                 database::get_profile_password_hash(ctx.settings.user_profile.as_ref().unwrap())?
             {
                 // Check if profile password is correct
                 if encrypt::check_password_hash(&password, &hash)? {
-                    println!("Password '{}' for source '{}'", password, source);
-
                     ctx.encryption_key = Some(password);
                     break;
                 }
@@ -65,6 +63,11 @@ pub fn exec(
 
         println!("Incorrect profile password. Please try again.");
     }
+
+    println!(
+        "Password '{:?}' for source '{}'",
+        ctx.encryption_key, source
+    );
 
     Ok(())
 }

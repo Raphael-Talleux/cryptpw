@@ -17,21 +17,21 @@ fn open_connection() -> Result<Connection> {
 ///
 /// - Checks if the "profiles" table exists, and creates it if not.
 /// - Attempts to load the "default" profile, or generates a new one.
-pub fn init(ctx: &AppContext) -> Result<(), Box<dyn std::error::Error>> {
+pub fn init(ctx: &mut AppContext) -> Result<(), Box<dyn std::error::Error>> {
     let db: Connection = open_connection()?;
-
-    let profile = ctx.settings.user_profile.as_deref().unwrap();
 
     // Check "profiles" table
     if !is_table_exist(&db, "profiles")? {
         generate_profile_table(&db)?;
     }
 
-    // Try to load user profile
-    if is_valid_profile(&db, profile)? {
-        println!("Profile loaded : {}", profile);
-    } else {
-        generate_new_profile(&db, profile)?;
+    if let Some(profile) = ctx.settings.user_profile.clone().as_deref() {
+        // Try to load user profile
+        if is_valid_profile(&db, profile)? {
+            println!("Profile loaded : {}", profile);
+        } else {
+            generate_new_profile(&db, ctx, profile)?;
+        }
     }
 
     Ok(())
@@ -79,6 +79,7 @@ fn generate_profile_table(db: &Connection) -> Result<()> {
 /// - The user is asked to confirm the password before saving.
 fn generate_new_profile(
     db: &Connection,
+    ctx: &mut AppContext,
     profile_name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!(
@@ -93,12 +94,15 @@ fn generate_new_profile(
             .interact();
 
         if let Ok(password) = password {
-            let password = encrypt::generate_password_hash(&password)?;
+            ctx.encryption_key = Some(password.clone());
+
+            let password_hash = encrypt::generate_password_hash(&password)?;
 
             db.execute(
                 "INSERT INTO profiles (name, pass_hash) VALUES (?1, ?2)",
-                [profile_name, &password],
+                [profile_name, &password_hash],
             )?;
+
             break;
         }
     }

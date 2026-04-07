@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ctx.settings.user_profile = Some(String::from(profile));
 
     // Init database, and check profile validity
-    database::init(&ctx)?;
+    database::init(&mut ctx)?;
 
     // Apply user command
     match user_command.subcommand() {
