@@ -8,7 +8,9 @@ use std::error::Error;
 fn main() -> Result<(), Box<dyn Error>> {
     cli::build_cli().get_matches();
 
-    database::init()?;
+    // For now, there is just a default profile
+    let profile: &str = "default";
+    database::init(profile)?;
 
     Ok(())
 }

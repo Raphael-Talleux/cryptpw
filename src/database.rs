@@ -17,7 +17,7 @@ fn open_connection() -> Result<Connection> {
 ///
 /// - Checks if the "profiles" table exists, and creates it if not.
 /// - Attempts to load the "default" profile, or generates a new one.
-pub fn init() -> Result<(), Box<dyn std::error::Error>> {
+pub fn init(profile: &str) -> Result<(), Box<dyn std::error::Error>> {
     let db: Connection = open_connection()?;
 
     // Check "profiles" table
@@ -26,10 +26,10 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Try to load user profile
-    if is_valid_profile(&db, "default")? {
-        println!("Profile loaded : {}", "default");
+    if is_valid_profile(&db, profile)? {
+        println!("Profile loaded : {}", profile);
     } else {
-        generate_new_profile(&db, "default")?;
+        generate_new_profile(&db, profile)?;
     }
 
     Ok(())
