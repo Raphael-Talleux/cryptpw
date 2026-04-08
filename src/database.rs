@@ -25,6 +25,11 @@ pub fn init(ctx: &mut AppContext) -> Result<(), Box<dyn std::error::Error>> {
         generate_profile_table(&db)?;
     }
 
+    // Check "secrets" table
+    if !is_table_exist(&db, "secrets")? {
+        generate_secrets_table(&db)?;
+    }
+
     if let Some(profile) = ctx.settings.user_profile.clone().as_deref() {
         // Try to load user profile
         if is_valid_profile(&db, profile)? {
@@ -59,13 +64,30 @@ fn is_valid_profile(db: &Connection, profile_name: &str) -> Result<bool> {
 
 /// Creates the "profiles" table.
 fn generate_profile_table(db: &Connection) -> Result<()> {
-    println!("Database is empty. Creating default resources.");
+    println!("Creating default resources : 'profiles' table.");
 
     db.execute(
         "CREATE TABLE IF NOT EXISTS profiles (
                 id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,
                 pass_hash TEXT NOT NULL)",
+        [],
+    )?;
+
+    Ok(())
+}
+
+/// Creates the "secrets" table.
+fn generate_secrets_table(db: &Connection) -> Result<()> {
+    println!("Creating default resources : 'secrets' table.");
+
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS secrets (
+                id INTEGER PRIMARY KEY,
+                profile_id INTEGER NOT NULL,
+                encrypted_source TEXT NOT NULL,
+                encrypted_password TEXT NOT NULL)
+                ",
         [],
     )?;
 
