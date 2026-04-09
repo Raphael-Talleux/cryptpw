@@ -173,12 +173,18 @@ pub fn create_new_secret(
     ciphertext_source: &str,
     ciphertext_password: &str,
     nonce: &str,
-    salt: &str
+    salt: &str,
 ) -> Result<()> {
     // Check inputs to avoid DB corruption
     if profile_id <= 0 || ciphertext_password.is_empty() || ciphertext_source.is_empty() {
         println!("Error : Can't create secret entry :");
-        dbg!((profile_id, ciphertext_password, ciphertext_source, nonce, salt));
+        dbg!((
+            profile_id,
+            ciphertext_password,
+            ciphertext_source,
+            nonce,
+            salt
+        ));
     }
 
     // Write secret into db
@@ -188,7 +194,13 @@ pub fn create_new_secret(
         db.execute(
             "INSERT INTO secrets (profile_id, ciphertext_source, ciphertext_password, nonce, salt) 
                 VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![profile_id, ciphertext_source, ciphertext_password, nonce, salt],
+            params![
+                profile_id,
+                ciphertext_source,
+                ciphertext_password,
+                nonce,
+                salt
+            ],
         )?;
 
         println!("User secret created successfully !");
