@@ -85,8 +85,10 @@ fn generate_secrets_table(db: &Connection) -> Result<()> {
         "CREATE TABLE IF NOT EXISTS secrets (
                 id INTEGER PRIMARY KEY,
                 profile_id INTEGER NOT NULL,
-                encrypted_source TEXT NOT NULL,
-                encrypted_password TEXT NOT NULL)
+                ciphertext_source TEXT NOT NULL,
+                ciphertext_password TEXT NOT NULL,
+                nonce TEXT NOT NULL,
+                salt TEXT NOT NULL)
                 ",
         [],
     )?;
@@ -168,13 +170,15 @@ pub fn get_profile_password_hash(
 
 pub fn create_new_secret(
     profile_id: u32,
-    encrypted_source: &str,
-    encrypted_password: &str,
+    ciphertext_source: &str,
+    ciphertext_password: &str,
+    nonce: &str,
+    salt: &str
 ) -> Result<()> {
     // Check inputs to avoid DB corruption
-    if profile_id <= 0 || encrypted_password.is_empty() || encrypted_source.is_empty() {
+    if profile_id <= 0 || ciphertext_password.is_empty() || ciphertext_source.is_empty() {
         println!("Error : Can't create secret entry :");
-        dbg!((profile_id, encrypted_password, encrypted_source));
+        dbg!((profile_id, ciphertext_password, ciphertext_source, nonce, salt));
     }
 
     // Write secret into db
@@ -182,9 +186,9 @@ pub fn create_new_secret(
 
     if is_table_exist(&db, "secrets")? {
         db.execute(
-            "INSERT INTO secrets (profile_id, encrypted_source, encrypted_password) 
-                VALUES (?1, ?2, ?3)",
-            params![profile_id, encrypted_source, encrypted_password],
+            "INSERT INTO secrets (profile_id, ciphertext_source, ciphertext_password, nonce, salt) 
+                VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![profile_id, ciphertext_source, ciphertext_password, nonce, salt],
         )?;
 
         println!("User secret created successfully !");
