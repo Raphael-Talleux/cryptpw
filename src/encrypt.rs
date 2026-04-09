@@ -47,19 +47,22 @@ pub fn check_password_hash(
         .is_ok())
 }
 
-/// Encrypts plaintext using AES-256-GCM with a password, generating a random salt and nonce.
+/// Encrypts plaintext using AES-256-GCM with a password, generating a random nonce
+/// and optionally using a provided salt (or generating one if not supplied).
 ///
 /// # Arguments
 ///
 /// * `key` - The password or passphrase used to derive the AES key.
 /// * `plaintext` - The text data to encrypt.
+/// * `optionnal_salt` - An optional 16-byte salt. If `None`, a random salt is generated.
+///                       Providing a salt can be useful for deterministic key derivation.
 ///
 /// # Returns
 ///
 /// A `Result` containing a tuple of three Base64-encoded strings:
 /// 1. `ciphertext_b64` - the encrypted data
 /// 2. `nonce_b64` - the randomly generated nonce used for encryption
-/// 3. `salt_b64` - the randomly generated salt used to derive the key
+/// 3. `salt_b64` - the salt used to derive the key (either provided or randomly generated)
 ///
 /// # Errors
 ///
@@ -68,11 +71,21 @@ pub fn check_password_hash(
 /// # Example
 ///
 /// ```
-/// let (ciphertext_b64, nonce_b64, salt_b64) = encrypt_data("password123", "Hello world")?;
+/// // With random salt
+/// let (ciphertext_b64, nonce_b64, salt_b64) =
+///     encrypt_data("password123", "Hello world", None)?;
+///
+/// // With provided salt
+/// let salt = [0u8; 16];
+/// let (ciphertext_b64, nonce_b64, salt_b64) =
+///     encrypt_data("password123", "Hello world", Some(salt))?;
 /// ```
-pub fn encrypt_data(key: &str, plaintext: &str) -> Result<(String, String, String), Error> {
-    // Generate random salt (16 bytes)
-    let salt = generate_salt();
+pub fn encrypt_data(
+    key: &str,
+    plaintext: &str,
+    optionnal_salt: Option<[u8; 16]>,
+) -> Result<(String, String, String), Error> {
+    let salt = optionnal_salt.unwrap_or_else(generate_salt);
     let salt_b64 = general_purpose::STANDARD.encode(&salt);
 
     // Generate random nonce (12 bytes)
@@ -118,15 +131,14 @@ pub fn encrypt_data(key: &str, plaintext: &str) -> Result<(String, String, Strin
 /// ```
 /// let plaintext = decrypt_data(password, ciphertext_b64, nonce_b64, salt_b64)?;
 /// ```
-pub fn decrypt_data(
+pub fn _decrypt_data(
     key: &str,
     ciphertext_b64: &str,
     nonce_b64: &str,
     salt_b64: &str,
 ) -> Result<String, Error> {
     // Decode salt
-    let decoded_salt = general_purpose::STANDARD.decode(&salt_b64).unwrap();
-    let salt: [u8; 16] = decoded_salt.try_into().unwrap();
+    let salt = decode_salt(salt_b64);
 
     // Decode nonce
     let decoded_nonce = general_purpose::STANDARD.decode(nonce_b64).unwrap();
@@ -183,4 +195,14 @@ fn generate_salt() -> [u8; 16] {
     rand::rng().fill_bytes(&mut salt);
 
     salt
+}
+
+/// Decodes a Base64-encoded salt into a 16-byte array.
+///
+/// # Panics
+///
+/// Panics if the input is not valid Base64 or not 16 bytes long.
+pub fn decode_salt(salt_b64: &str) -> [u8; 16] {
+    let decoded_salt = general_purpose::STANDARD.decode(&salt_b64).unwrap();
+    decoded_salt.try_into().unwrap()
 }

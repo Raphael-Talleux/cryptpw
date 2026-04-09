@@ -9,38 +9,39 @@ pub fn cmd() -> Command {
     )
 }
 
-/// Executes the command by validating the user's profile password
-/// and storing it as the encryption key in the application context.
+/// Executes the command by validating the user's profile password,
+/// then encrypts and stores a SOURCE and SECRET in the database.
 ///
-/// This function prompts the user to enter their profile password,
-/// verifies it against the stored password hash, and repeats the
-/// process until a valid password is provided.
+/// The function prompts the user for their profile password until it is valid.
+/// Once authenticated, it encrypts:
+/// - the provided `source`
+/// - a newly generated secret
+/// using AES encryption, then saves the results.
 ///
 /// # Arguments
-/// * `ctx` - Mutable reference to the application context, which will
-///   be updated with the encryption key upon successful authentication.
-/// * `args` - Command-line arguments parsed by `clap`, expected to contain
-///   a `"source"` parameter.
+/// * `ctx` - Mutable application context; updated with the encryption key after authentication.
+/// * `args` - Parsed CLI arguments, must contain a `"source"` parameter.
 ///
 /// # Returns
-/// * `Ok(())` if the password is successfully validated and stored.
-/// * `Err(...)` if an error occurs while retrieving the password hash
-///   or verifying it.
+/// * `Ok(())` on success.
+/// * `Err(...)` if password retrieval, verification, or database operations fail.
 ///
 /// # Errors
-/// This function will return an error if:
-/// - Retrieving the stored password hash from the database fails.
-/// - The password hash verification process fails.
+/// Returns an error if:
+/// - Fetching the stored password hash fails.
+/// - Password verification fails.
+/// - Database insertion fails.
 ///
 /// # Panics
-/// This function will panic if the `"source"` argument is missing or invalid,
-/// due to the use of `expect("Arg invalid")`.
+/// Panics if the `"source"` argument is missing (`expect("Arg invalid")`)
+/// or if encryption fails (due to `unwrap()`).
 ///
 /// # Behavior
-/// - Continuously prompts the user for their profile password.
-/// - Compares the entered password with the stored hash.
-/// - On success, sets `ctx.encryption_key` and exits the loop.
-/// - On failure, displays an error message and retries.
+/// - Repeatedly prompts for the profile password until valid.
+/// - Stores the password in `ctx.encryption_key`.
+/// - Encrypts `source` with a random salt.
+/// - Encrypts `secret` using the same salt as `source`.
+/// - Persists encrypted values in the database.
 pub fn exec(
     ctx: &mut AppContext,
     args: &clap::ArgMatches,
@@ -68,12 +69,30 @@ pub fn exec(
     let new_secret: &str = "my_secret";
     println!("TODO REQUEST NEW USER SECRET");
 
-    // TODO Source encryption
-    // TODO Secret encryption
+    
+    if let Some(key) = &ctx.encryption_key {
+        let profile_id = ctx.settings.profile_id.unwrap();
 
-    // Write user secret into db
-    if let Some(profile_id) = ctx.settings.profile_id {
-        database::create_new_secret(profile_id, source, new_secret)?;
+        // Apply encryption to SOURCE and SECRET
+        let source_ciphertext = encrypt::encrypt_data(&key, source, None).unwrap();
+        let secret_ciphertext = encrypt::encrypt_data(
+            &key,
+            new_secret,
+            Some(encrypt::decode_salt(&source_ciphertext.2)),
+        )
+        .unwrap();
+
+        // Write result in database
+        database::create_new_secret(
+            profile_id,
+            &source_ciphertext.0,
+            &secret_ciphertext.0,
+            &secret_ciphertext.1,
+            &secret_ciphertext.2,
+        )?;
+
+        //dbg!(encrypt::decrypt_data(&key, &source_ciphertext.0, &source_ciphertext.1, &source_ciphertext.2));
+        //dbg!(encrypt::decrypt_data(&key, &secret_ciphertext.0, &secret_ciphertext.1, &secret_ciphertext.2));
     }
 
     Ok(())
