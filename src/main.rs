@@ -17,6 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // For now, there is just a default profile
     let profile: &str = "default";
     ctx.settings.user_profile = Some(String::from(profile));
+    ctx.settings.profile_id = Some(1);
 
     // Init database, and check profile validity
     database::init(&mut ctx)?;

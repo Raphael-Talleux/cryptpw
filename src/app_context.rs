@@ -25,10 +25,14 @@ impl Default for AppContext {
 #[derive(Debug)]
 pub struct Settings {
     pub user_profile: Option<String>,
+    pub profile_id: Option<u32>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { user_profile: None }
+        Settings {
+            user_profile: None,
+            profile_id: None,
+        }
     }
 }

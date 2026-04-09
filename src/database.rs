@@ -6,7 +6,7 @@
 
 use crate::{app_context::AppContext, encrypt};
 use dialoguer::Password;
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, Result, params};
 
 /// Opens a connection to the SQLite database.
 fn open_connection() -> Result<Connection> {
@@ -164,4 +164,32 @@ pub fn get_profile_password_hash(
     } else {
         Ok(None)
     }
+}
+
+pub fn create_new_secret(
+    profile_id: u32,
+    encrypted_source: &str,
+    encrypted_password: &str,
+) -> Result<()> {
+    // Check inputs to avoid DB corruption
+    if profile_id <= 0 || encrypted_password.is_empty() || encrypted_source.is_empty() {
+        println!("Error : Can't create secret entry :");
+        dbg!((profile_id, encrypted_password, encrypted_source));
+    }
+
+    // Write secret into db
+    let db = open_connection()?;
+
+    if is_table_exist(&db, "secrets")? {
+        db.execute(
+            "INSERT INTO secrets (profile_id, encrypted_source, encrypted_password) 
+                VALUES (?1, ?2, ?3)",
+            params![profile_id, encrypted_source, encrypted_password],
+        )?;
+
+        println!("User secret created successfully !");
+    }
+
+    // TODO handle error
+    Ok(())
 }

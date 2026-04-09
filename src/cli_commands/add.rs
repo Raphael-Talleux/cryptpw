@@ -45,15 +45,15 @@ pub fn exec(
     ctx: &mut AppContext,
     args: &clap::ArgMatches,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let source: &String = args.get_one::<String>("source").expect("Arg invalid");
+    let source: &str = args.get_one::<String>("source").expect("Arg invalid");
 
-    // Get encryption key from user
+    // Prompt the user for the encryption key
     while ctx.encryption_key.is_none() {
         if let Some(password) = request_profile_password(ctx) {
             if let Some(hash) =
                 database::get_profile_password_hash(ctx.settings.user_profile.as_ref().unwrap())?
             {
-                // Check if profile password is correct
+                // Verify that the profile password is correct
                 if encrypt::check_password_hash(&password, &hash)? {
                     ctx.encryption_key = Some(password);
                     break;
@@ -64,10 +64,17 @@ pub fn exec(
         println!("Incorrect profile password. Please try again.");
     }
 
-    println!(
-        "Password '{:?}' for source '{}'",
-        ctx.encryption_key, source
-    );
+    // Request a new secret for registration
+    let new_secret: &str = "my_secret";
+    println!("TODO REQUEST NEW USER SECRET");
+
+    // TODO Source encryption
+    // TODO Secret encryption
+
+    // Write user secret into db
+    if let Some(profile_id) = ctx.settings.profile_id {
+        database::create_new_secret(profile_id, source, new_secret)?;
+    }
 
     Ok(())
 }
