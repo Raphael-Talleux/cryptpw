@@ -27,6 +27,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(("add", args)) => {
             cli_commands::add::exec(&mut ctx, args)?;
         }
+        Some(("list", _)) => {
+            cli_commands::list::exec(&mut ctx);
+        }
         _ => {
             println!("Use --help to see available commands.");
         }
