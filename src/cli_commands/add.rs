@@ -1,4 +1,8 @@
-use crate::{app_context::AppContext, database, encrypt, utils::request_profile_password};
+use crate::{
+    app_context::AppContext,
+    database, encrypt,
+    utils::{self, request_profile_password},
+};
 use clap::{Arg, Command};
 
 pub fn cmd() -> Command {
@@ -66,10 +70,8 @@ pub fn exec(
     }
 
     // Request a new secret for registration
-    let new_secret: &str = "my_secret";
-    println!("TODO REQUEST NEW USER SECRET");
+    let new_secret: &str = &utils::request_new_secret().unwrap();
 
-    
     if let Some(key) = &ctx.encryption_key {
         let profile_id = ctx.settings.profile_id.unwrap();
 
@@ -90,9 +92,6 @@ pub fn exec(
             &secret_ciphertext.1,
             &secret_ciphertext.2,
         )?;
-
-        //dbg!(encrypt::decrypt_data(&key, &source_ciphertext.0, &source_ciphertext.1, &source_ciphertext.2));
-        //dbg!(encrypt::decrypt_data(&key, &secret_ciphertext.0, &secret_ciphertext.1, &secret_ciphertext.2));
     }
 
     Ok(())
