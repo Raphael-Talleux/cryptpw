@@ -1,7 +1,7 @@
 use crate::{
     app_context::AppContext,
     database, encrypt,
-    utils::{self, request_profile_password},
+    utils::{self},
 };
 use clap::{Arg, Command};
 
@@ -13,14 +13,16 @@ pub fn cmd() -> Command {
     )
 }
 
-/// Executes the command by validating the user's profile password,
-/// then encrypts and stores a SOURCE and SECRET in the database.
+/// Executes the command by authenticating the user, then encrypting and storing
+/// a SOURCE and SECRET in the database.
 ///
-/// The function prompts the user for their profile password until it is valid.
-/// Once authenticated, it encrypts:
-/// - the provided `source`
-/// - a newly generated secret
-/// using AES encryption, then saves the results.
+/// The function first ensures the user is authenticated by requesting their
+/// profile password via `request_user_login`. Once authenticated, it prompts
+/// the user to input a new secret.
+///
+/// Both the provided `source` and the user-entered `secret` are encrypted using
+/// AES before being stored in the database. The same salt is reused for both
+/// values to allow consistent encryption linkage.
 ///
 /// # Arguments
 /// * `ctx` - Mutable application context; updated with the encryption key after authentication.
@@ -28,22 +30,23 @@ pub fn cmd() -> Command {
 ///
 /// # Returns
 /// * `Ok(())` on success.
-/// * `Err(...)` if password retrieval, verification, or database operations fail.
+/// * `Err(...)` if authentication, encryption, or database operations fail.
 ///
 /// # Errors
 /// Returns an error if:
-/// - Fetching the stored password hash fails.
-/// - Password verification fails.
+/// - User authentication fails (via `request_user_login`).
 /// - Database insertion fails.
 ///
 /// # Panics
-/// Panics if the `"source"` argument is missing (`expect("Arg invalid")`)
-/// or if encryption fails (due to `unwrap()`).
+/// Panics if:
+/// - The `"source"` argument is missing (`expect("Arg invalid")`).
+/// - The user cancels secret input (`unwrap()` on `request_new_secret`).
+/// - Encryption fails (`unwrap()`).
 ///
 /// # Behavior
-/// - Repeatedly prompts for the profile password until valid.
-/// - Stores the password in `ctx.encryption_key`.
-/// - Encrypts `source` with a random salt.
+/// - Authenticates the user and stores the encryption key in `ctx.encryption_key`.
+/// - Prompts the user to input a new secret.
+/// - Encrypts `source` with a randomly generated salt.
 /// - Encrypts `secret` using the same salt as `source`.
 /// - Persists encrypted values in the database.
 pub fn exec(
@@ -52,22 +55,8 @@ pub fn exec(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let source: &str = args.get_one::<String>("source").expect("Arg invalid");
 
-    // Prompt the user for the encryption key
-    while ctx.encryption_key.is_none() {
-        if let Some(password) = request_profile_password(ctx) {
-            if let Some(hash) =
-                database::get_profile_password_hash(ctx.settings.user_profile.as_ref().unwrap())?
-            {
-                // Verify that the profile password is correct
-                if encrypt::check_password_hash(&password, &hash)? {
-                    ctx.encryption_key = Some(password);
-                    break;
-                }
-            }
-        }
-
-        println!("Incorrect profile password. Please try again.");
-    }
+    // Load profile with user credentials
+    utils::request_user_login(ctx)?;
 
     // Request a new secret for registration
     let new_secret: &str = &utils::request_new_secret().unwrap();
