@@ -1,6 +1,7 @@
 use crate::{
     app_context::AppContext,
-    database, encrypt,
+    database,
+    encrypt::{self},
     utils::{self},
 };
 use clap::{Arg, Command};
@@ -65,11 +66,12 @@ pub fn exec(
         let profile_id = ctx.settings.profile_id.unwrap();
 
         // Apply encryption to SOURCE and SECRET
-        let source_ciphertext = encrypt::encrypt_data(&key, source, None).unwrap();
+        let source_ciphertext = encrypt::encrypt_data(&key, source, None, None).unwrap();
         let secret_ciphertext = encrypt::encrypt_data(
             &key,
             new_secret,
-            Some(encrypt::decode_salt(&source_ciphertext.2)),
+            Some(source_ciphertext.2.clone()),
+            Some(source_ciphertext.1.clone()),
         )
         .unwrap();
 
