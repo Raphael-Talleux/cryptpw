@@ -1,4 +1,7 @@
-use aes_gcm::{AeadCore, Aes256Gcm, Error, Key, KeyInit, Nonce, aead::Aead};
+use aes_gcm::{
+    AeadCore, Aes256Gcm, Error, Key, KeyInit, Nonce,
+    aead::{Aead, generic_array::GenericArray},
+};
 use argon2::{
     self, Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
@@ -48,21 +51,22 @@ pub fn check_password_hash(
 }
 
 /// Encrypts plaintext using AES-256-GCM with a password, generating a random nonce
-/// and optionally using a provided salt (or generating one if not supplied).
+/// and optionally using a provided salt and/or nonce (or generating them if not supplied).
 ///
 /// # Arguments
 ///
 /// * `key` - The password or passphrase used to derive the AES key.
 /// * `plaintext` - The text data to encrypt.
-/// * `optionnal_salt` - An optional 16-byte salt. If `None`, a random salt is generated.
-///                       Providing a salt can be useful for deterministic key derivation.
+/// * `optionnal_salt` - An optional 16-byte salt encoded in Base64. If `None`, a random salt is generated.
+///   Providing a salt allows deterministic key derivation.
+/// * `optionnal_nonce` - An optional 12-byte nonce encoded in Base64. If `None`, a random nonce is generated.
 ///
 /// # Returns
 ///
 /// A `Result` containing a tuple of three Base64-encoded strings:
 /// 1. `ciphertext_b64` - the encrypted data
-/// 2. `nonce_b64` - the randomly generated nonce used for encryption
-/// 3. `salt_b64` - the salt used to derive the key (either provided or randomly generated)
+/// 2. `nonce_b64` - the nonce used for encryption (provided or randomly generated)
+/// 3. `salt_b64` - the salt used to derive the key (provided or randomly generated)
 ///
 /// # Errors
 ///
@@ -71,35 +75,59 @@ pub fn check_password_hash(
 /// # Example
 ///
 /// ```
-/// // With random salt
+/// // With random salt and nonce
 /// let (ciphertext_b64, nonce_b64, salt_b64) =
-///     encrypt_data("password123", "Hello world", None)?;
+///     encrypt_data("password123", "Hello world", None, None)?;
 ///
-/// // With provided salt
-/// let salt = [0u8; 16];
+/// // With provided salt and nonce
+/// let salt = base64::engine::general_purpose::STANDARD.encode([0u8; 16]);
+/// let nonce = base64::engine::general_purpose::STANDARD.encode([0u8; 12]);
+///
 /// let (ciphertext_b64, nonce_b64, salt_b64) =
-///     encrypt_data("password123", "Hello world", Some(salt))?;
+///     encrypt_data("password123", "Hello world", Some(salt), Some(nonce))?;
 /// ```
 pub fn encrypt_data(
     key: &str,
     plaintext: &str,
-    optionnal_salt: Option<[u8; 16]>,
+    optionnal_salt: Option<String>,
+    optionnal_nonce: Option<String>,
 ) -> Result<(String, String, String), Error> {
-    let salt = optionnal_salt.unwrap_or_else(generate_salt);
+    // Generate salt (16 bytes)
+    let (salt_bytes, salt_b64) = if let Some(salt_b64) = optionnal_salt {
+        let salt: [u8; 16] = general_purpose::STANDARD
+            .decode(&salt_b64)
+            .unwrap()
+            .try_into()
+            .unwrap();
+
+        (salt, salt_b64)
+    } else {
+        let salt = generate_salt();
     let salt_b64 = general_purpose::STANDARD.encode(&salt);
+        (salt, salt_b64)
+    };
 
     // Generate random nonce (12 bytes)
+    let (nonce_bytes, nonce_b64) = if let Some(nonce_b64) = optionnal_nonce {
+        let decoded = general_purpose::STANDARD.decode(&nonce_b64).unwrap();
+        let nonce = GenericArray::from_exact_iter(decoded)
+            .ok_or("invalid nonce size")
+            .unwrap();
+        (nonce, nonce_b64)
+    } else {
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
     let nonce_b64 = general_purpose::STANDARD.encode(&nonce);
+        (nonce, nonce_b64)
+    };
 
     // Derive 32-byte AES key from password + salt
-    let key = generate_key(key, &salt);
+    let key = generate_key(key, &salt_bytes);
     let key_32bytes = Key::<Aes256Gcm>::from_slice(&key);
 
     let cipher = Aes256Gcm::new(key_32bytes);
 
     // Encrypt plaintext data
-    let ciphertext = cipher.encrypt(&nonce, plaintext.as_bytes())?;
+    let ciphertext = cipher.encrypt(&nonce_bytes, plaintext.as_bytes())?;
     let ciphertext_b64 = general_purpose::STANDARD.encode(&ciphertext);
 
     Ok((ciphertext_b64, nonce_b64, salt_b64))
@@ -131,7 +159,7 @@ pub fn encrypt_data(
 /// ```
 /// let plaintext = decrypt_data(password, ciphertext_b64, nonce_b64, salt_b64)?;
 /// ```
-pub fn _decrypt_data(
+pub fn decrypt_data(
     key: &str,
     ciphertext_b64: &str,
     nonce_b64: &str,
@@ -151,7 +179,7 @@ pub fn _decrypt_data(
 
     // Decode ciphertext and decrypt data
     let ciphertext = general_purpose::STANDARD.decode(ciphertext_b64).unwrap();
-    let plaintext = cipher.decrypt(&nonce, ciphertext.as_slice())?;
+    let plaintext = cipher.decrypt(&nonce, ciphertext.as_slice()).unwrap();
 
     if let Ok(plaintext) = String::from_utf8(plaintext) {
         return Ok(plaintext);
