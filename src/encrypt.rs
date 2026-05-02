@@ -234,3 +234,19 @@ pub fn decode_salt(salt_b64: &str) -> [u8; 16] {
     let decoded_salt = general_purpose::STANDARD.decode(&salt_b64).unwrap();
     decoded_salt.try_into().unwrap()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::encrypt::{self, decrypt_data};
+
+    #[test]
+    fn test_encryption() {
+        let initial_plaintext = "my super plaintext";
+        let key = "test key for encryption";
+
+        let cyphertext = encrypt::encrypt_data(&key, &initial_plaintext, None, None).unwrap();
+        let plaintext = decrypt_data(&key, &cyphertext.0, &cyphertext.1, &cyphertext.2).unwrap();
+
+        assert!(initial_plaintext == plaintext);
+    }
+}
