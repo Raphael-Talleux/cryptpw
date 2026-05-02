@@ -103,7 +103,7 @@ pub fn encrypt_data(
         (salt, salt_b64)
     } else {
         let salt = generate_salt();
-    let salt_b64 = general_purpose::STANDARD.encode(&salt);
+        let salt_b64 = general_purpose::STANDARD.encode(&salt);
         (salt, salt_b64)
     };
 
@@ -115,8 +115,8 @@ pub fn encrypt_data(
             .unwrap();
         (nonce, nonce_b64)
     } else {
-    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-    let nonce_b64 = general_purpose::STANDARD.encode(&nonce);
+        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+        let nonce_b64 = general_purpose::STANDARD.encode(&nonce);
         (nonce, nonce_b64)
     };
 
