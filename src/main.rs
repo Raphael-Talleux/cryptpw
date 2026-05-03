@@ -2,7 +2,7 @@ mod app_context;
 mod cli;
 mod cli_commands;
 mod database;
-mod encrypt;
+mod encryption;
 mod model;
 mod utils;
 

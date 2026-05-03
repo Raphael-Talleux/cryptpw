@@ -1,4 +1,4 @@
-use crate::{app_context::AppContext, database, encrypt};
+use crate::{app_context::AppContext, database, encryption};
 use dialoguer::Password;
 
 /// Prompts the user to log in by entering their profile password.
@@ -25,7 +25,7 @@ pub fn request_user_login(ctx: &mut AppContext) -> Result<(), Box<dyn std::error
                 database::get_profile_password_hash(ctx.settings.user_profile.as_ref().unwrap())?
             {
                 // Verify that the profile password is correct
-                if encrypt::check_password_hash(&password, &hash)? {
+                if encryption::check_password_hash(&password, &hash)? {
                     ctx.encryption_key = Some(password);
                     break;
                 }

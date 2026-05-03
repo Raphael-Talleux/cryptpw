@@ -6,7 +6,7 @@
 
 use crate::{
     app_context::AppContext,
-    encrypt,
+    encryption,
     model::{self},
 };
 use dialoguer::Password;
@@ -124,7 +124,7 @@ fn generate_new_profile(
         if let Ok(password) = password {
             ctx.encryption_key = Some(password.clone());
 
-            let password_hash = encrypt::generate_password_hash(&password)?;
+            let password_hash = encryption::generate_password_hash(&password)?;
 
             db.execute(
                 "INSERT INTO profiles (name, pass_hash) VALUES (?1, ?2)",

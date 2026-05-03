@@ -1,4 +1,4 @@
-use crate::encrypt;
+use crate::encryption;
 
 #[derive(Debug)]
 pub struct Secret {
@@ -10,6 +10,6 @@ pub struct Secret {
 
 impl Secret {
     pub fn as_source_plaintext(&self, key: &str) -> String {
-        encrypt::decrypt_data(key, &self.source, &self.nonce, &self.salt).unwrap()
+        encryption::decrypt_data(key, &self.source, &self.nonce, &self.salt).unwrap()
     }
 }
