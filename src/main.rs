@@ -3,6 +3,7 @@ mod cli;
 mod cli_commands;
 mod database;
 mod encrypt;
+mod model;
 mod utils;
 
 use app_context::AppContext;
@@ -28,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             cli_commands::add::exec(&mut ctx, args)?;
         }
         Some(("list", _)) => {
-            cli_commands::list::exec(&mut ctx);
+            cli_commands::list::exec(&mut ctx)?;
         }
         _ => {
             println!("Use --help to see available commands.");

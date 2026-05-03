@@ -4,7 +4,11 @@
 //! Main pub functions:
 //! - `init()` : initializes the database and the default profile
 
-use crate::{app_context::AppContext, encrypt};
+use crate::{
+    app_context::AppContext,
+    encrypt,
+    model::{self},
+};
 use dialoguer::Password;
 use rusqlite::{Connection, Result, params};
 
@@ -208,4 +212,31 @@ pub fn create_new_secret(
 
     // TODO handle error
     Ok(())
+}
+
+pub fn list_all_secret_for_profile(
+    profile_id: u32,
+) -> Result<Vec<model::Secret>, Box<dyn std::error::Error>> {
+    let db = open_connection()?;
+
+    let mut stmt = db.prepare(
+        "
+        SELECT ciphertext_source, ciphertext_password, nonce, salt
+        FROM secrets
+        INNER JOIN profiles
+        ON secrets.profile_id = profiles.id
+        WHERE profile_id = ?1
+        ",
+    )?;
+
+    let rows = stmt.query_map([profile_id], |row| {
+        Ok(model::Secret {
+            source: row.get(0)?,
+            _password: row.get(1)?,
+            nonce: row.get(2)?,
+            salt: row.get(3)?,
+        })
+    })?;
+
+    Ok(rows.collect::<Result<_, _>>()?)
 }
