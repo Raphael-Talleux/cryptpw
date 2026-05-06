@@ -1,3 +1,31 @@
+//! # Encryption Module
+//!
+//! This module provides secure password management and symmetric encryption utilities.
+//!
+//! It offers functionality for:
+//! - Generating and verifying password hashes using **Argon2**.
+//! - Encrypting and decrypting text data using **AES-256-GCM** with optional or random salts and nonces.
+//! - Encoding and decoding cryptographic data in Base64 for storage or transmission.
+//!
+//! ## Overview
+//!
+//! ### Password Management
+//! Passwords are hashed using Argon2, a memory-hard password hashing algorithm.  
+//! The module supports verification against existing hashes to ensure security.
+//!
+//! ### Symmetric Encryption
+//! Data can be encrypted using AES-256-GCM, which provides both confidentiality and integrity.  
+//! A 32-byte key is derived from a password and a salt using Argon2.  
+//! Nonces and salts can be generated randomly or provided explicitly for deterministic encryption.
+//!
+//! ### Base64 Encoding
+//! Encrypted data, nonces, and salts are all returned as Base64-encoded strings for safe handling and storage.
+//!
+//! ## Security Considerations
+//! - Argon2 ensures strong password hashing and key derivation.  
+//! - AES-256-GCM guarantees authenticated encryption, preventing tampering.  
+//! - Random salts and nonces prevent key reuse and ensure unique encryption outputs.
+
 use aes_gcm::{
     AeadCore, Aes256Gcm, Error, Key, KeyInit, Nonce,
     aead::{Aead, generic_array::GenericArray},
