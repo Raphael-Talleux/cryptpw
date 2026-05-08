@@ -28,6 +28,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(("add", args)) => {
             cli_commands::add::exec(&mut ctx, args)?;
         }
+        Some(("show", args)) => {
+            cli_commands::show::exec(&ctx, args)?;
+        }
         Some(("list", _)) => {
             cli_commands::list::exec(&mut ctx)?;
         }
