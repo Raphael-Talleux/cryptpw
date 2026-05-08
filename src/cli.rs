@@ -10,4 +10,5 @@ pub fn build_cli() -> Command {
         .subcommand(cli_commands::add::cmd())
         .subcommand(cli_commands::remove::cmd())
         .subcommand(cli_commands::list::cmd())
+        .subcommand(cli_commands::show::cmd())
 }
