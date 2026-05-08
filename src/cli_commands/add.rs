@@ -17,16 +17,14 @@ pub fn cmd() -> Command {
 /// Executes the command by authenticating the user, then encrypting and storing
 /// a SOURCE and SECRET in the database.
 ///
-/// The function first ensures the user is authenticated by requesting their
-/// profile password via `request_user_login`. Once authenticated, it prompts
-/// the user to input a new secret.
+/// The function prompts the user to input a new secret.
 ///
 /// Both the provided `source` and the user-entered `secret` are encrypted using
 /// AES before being stored in the database. The same salt is reused for both
 /// values to allow consistent encryption linkage.
 ///
 /// # Arguments
-/// * `ctx` - Mutable application context; updated with the encryption key after authentication.
+/// * `ctx` - Application context
 /// * `args` - Parsed CLI arguments, must contain a `"source"` parameter.
 ///
 /// # Returns
@@ -35,7 +33,6 @@ pub fn cmd() -> Command {
 ///
 /// # Errors
 /// Returns an error if:
-/// - User authentication fails (via `request_user_login`).
 /// - Database insertion fails.
 ///
 /// # Panics
@@ -45,19 +42,12 @@ pub fn cmd() -> Command {
 /// - Encryption fails (`unwrap()`).
 ///
 /// # Behavior
-/// - Authenticates the user and stores the encryption key in `ctx.encryption_key`.
 /// - Prompts the user to input a new secret.
 /// - Encrypts `source` with a randomly generated salt.
 /// - Encrypts `secret` using the same salt as `source`.
 /// - Persists encrypted values in the database.
-pub fn exec(
-    ctx: &mut AppContext,
-    args: &clap::ArgMatches,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn exec(ctx: &AppContext, args: &clap::ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let source: &str = args.get_one::<String>("source").expect("Arg invalid");
-
-    // Load profile with user credentials
-    utils::request_user_login(ctx)?;
 
     // Request a new secret for registration
     let new_secret: &str = &utils::request_new_secret().unwrap();

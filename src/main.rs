@@ -20,19 +20,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     ctx.settings.user_profile = Some(String::from(profile));
     ctx.settings.profile_id = Some(1);
 
+    utils::request_user_login(&mut ctx)?;
+
     // Init database, and check profile validity
     database::init(&mut ctx)?;
 
     // Apply user command
     match user_command.subcommand() {
         Some(("add", args)) => {
-            cli_commands::add::exec(&mut ctx, args)?;
+            cli_commands::add::exec(&ctx, args)?;
         }
         Some(("show", args)) => {
             cli_commands::show::exec(&ctx, args)?;
         }
         Some(("list", _)) => {
-            cli_commands::list::exec(&mut ctx)?;
+            cli_commands::list::exec(&ctx)?;
         }
         _ => {
             println!("Use --help to see available commands.");
