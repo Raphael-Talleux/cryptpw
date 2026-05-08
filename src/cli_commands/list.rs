@@ -1,15 +1,12 @@
 use clap::Command;
 
-use crate::{app_context::AppContext, database, model, utils};
+use crate::{app_context::AppContext, database, model};
 
 pub fn cmd() -> Command {
     Command::new("list").about("Lists the sources registered for the profile")
 }
 
-pub fn exec(ctx: &mut AppContext) -> Result<(), Box<dyn std::error::Error>> {
-    // Load profile with user credentials
-    utils::request_user_login(ctx)?;
-
+pub fn exec(ctx: &AppContext) -> Result<(), Box<dyn std::error::Error>> {
     // Request database to obtain secrets list
     let secrets: Vec<model::Secret> =
         database::list_all_secret_for_profile(ctx.settings.profile_id.unwrap())?;
