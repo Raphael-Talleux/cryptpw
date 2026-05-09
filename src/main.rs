@@ -15,15 +15,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let user_command: ArgMatches = cli::build_cli().get_matches();
 
+    // Init database, ensure data integrity
+    database::init()?;
+
     // For now, there is just a default profile
     let profile: &str = "default";
     ctx.settings.user_profile = Some(String::from(profile));
     ctx.settings.profile_id = Some(1);
 
-    utils::request_user_login(&mut ctx)?;
-
-    // Init database, and check profile validity
-    database::init(&mut ctx)?;
+    database::load_profile(&mut ctx)?;
 
     // Apply user command
     match user_command.subcommand() {
