@@ -102,8 +102,10 @@ fn generate_secrets_table(db: &Connection) -> Result<()> {
         "CREATE TABLE IF NOT EXISTS secrets (
                 id INTEGER PRIMARY KEY,
                 profile_id INTEGER NOT NULL,
-                ciphertext_source TEXT NOT NULL,
-                ciphertext_password TEXT NOT NULL,
+                source TEXT NOT NULL,
+                is_source_encrypted INTEGER NOT NULL,
+                password TEXT NOT NULL,
+                is_password_encrypted INTEGER NOT NULL,
                 nonce TEXT NOT NULL,
                 salt TEXT NOT NULL)
                 ",
@@ -187,34 +189,40 @@ pub fn get_profile_password_hash(
 
 pub fn create_new_secret(
     profile_id: u32,
-    ciphertext_source: &str,
-    ciphertext_password: &str,
+    source: &Encryptable,
+    password: &Encryptable,
     nonce: &str,
     salt: &str,
 ) -> Result<()> {
     // Check inputs to avoid DB corruption
-    if profile_id <= 0 || ciphertext_password.is_empty() || ciphertext_source.is_empty() {
+    if profile_id <= 0 || password.is_empty() || source.is_empty() {
         println!("Error : Can't create secret entry :");
-        dbg!((
-            profile_id,
-            ciphertext_password,
-            ciphertext_source,
-            nonce,
-            salt
-        ));
+        dbg!((profile_id, password, source, nonce, salt));
     }
 
     // Write secret into db
     let db = open_connection()?;
 
+    let (source, is_encrypted_source) = match source {
+        Encryptable::Plain(s) => (s, 0),
+        Encryptable::Encrypted(s) => (s, 1),
+    };
+
+    let (password, is_encrypted_password) = match password {
+        Encryptable::Plain(s) => (s, 0),
+        Encryptable::Encrypted(s) => (s, 1),
+    };
+
     if is_table_exist(&db, "secrets")? {
         db.execute(
-            "INSERT INTO secrets (profile_id, ciphertext_source, ciphertext_password, nonce, salt) 
-                VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO secrets (profile_id, source, is_source_encrypted, password, is_password_encrypted, nonce, salt) 
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 profile_id,
-                ciphertext_source,
-                ciphertext_password,
+                source,
+                is_encrypted_source,
+                password,
+                is_encrypted_password,
                 nonce,
                 salt
             ],
@@ -234,7 +242,7 @@ pub fn list_all_secret_for_profile(
 
     let mut stmt = db.prepare(
         "
-        SELECT ciphertext_source, ciphertext_password, nonce, salt
+        SELECT source, is_source_encrypted, password, is_password_encrypted, nonce, salt
         FROM secrets
         INNER JOIN profiles
         ON secrets.profile_id = profiles.id
@@ -242,12 +250,30 @@ pub fn list_all_secret_for_profile(
         ",
     )?;
 
+    // Map query rows to Secret model instances.
     let rows = stmt.query_map([profile_id], |row| {
+        let is_source_encrypted: u8 = row.get(1)?;
+        let source = if is_source_encrypted == 1 {
+            Encryptable::Encrypted(row.get(0)?)
+        } else {
+            Encryptable::Plain(row.get(0)?)
+        };
+
+        let is_password_encrypted: u8 = row.get(3)?;
+        let password = if is_password_encrypted == 1 {
+            Encryptable::Encrypted(row.get(2)?)
+        } else {
+            Encryptable::Plain(row.get(2)?)
+        };
+
+        let nonce: String = row.get(4)?;
+        let salt: String = row.get(5)?;
+
         Ok(model::Secret {
-            source: row.get(0)?,
-            _password: row.get(1)?,
-            nonce: row.get(2)?,
-            salt: row.get(3)?,
+            source,
+            _password: password,
+            nonce,
+            salt,
         })
     })?;
 
