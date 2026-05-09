@@ -7,7 +7,8 @@
 use crate::{
     app_context::AppContext,
     encryption,
-    model::{self},
+    model::{self, Encryptable},
+    utils,
 };
 use dialoguer::Password;
 use rusqlite::{Connection, Result, params};
@@ -19,9 +20,8 @@ fn open_connection() -> Result<Connection> {
 
 /// Initializes the database and ensures a default profile exists.
 ///
-/// - Checks if the "profiles" table exists, and creates it if not.
-/// - Attempts to load the "default" profile, or generates a new one.
-pub fn init(ctx: &mut AppContext) -> Result<(), Box<dyn std::error::Error>> {
+/// - Checks if the "profiles" and "secrets" tables exists
+pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     let db: Connection = open_connection()?;
 
     // Check "profiles" table
@@ -34,9 +34,22 @@ pub fn init(ctx: &mut AppContext) -> Result<(), Box<dyn std::error::Error>> {
         generate_secrets_table(&db)?;
     }
 
+    Ok(())
+}
+
+/// Loads the user profile specified in the application settings, validates it against the database,
+/// and either requests a user login or generates a new profile.
+///
+/// # Errors
+/// Returns an error if opening the database connection, validating the profile, requesting login,
+/// or generating a new profile fails. The error is returned as a Box<dyn std::error::Error>.
+pub fn load_profile(ctx: &mut AppContext) -> Result<(), Box<dyn std::error::Error>> {
+    let db: Connection = open_connection()?;
+
     if let Some(profile) = ctx.settings.user_profile.clone().as_deref() {
         // Try to load user profile
         if is_valid_profile(&db, profile)? {
+            utils::request_user_login(ctx)?;
             println!("Profile loaded : {}", profile);
         } else {
             generate_new_profile(&db, ctx, profile)?;
