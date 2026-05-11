@@ -1,6 +1,6 @@
 use crate::encryption;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Secret {
     pub source: Encryptable,
     pub _password: Encryptable,
