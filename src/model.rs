@@ -17,6 +17,14 @@ impl Secret {
             Encryptable::Plain(plaintext) => plaintext.clone(),
         }
     }
+
+    pub fn decrypt_source(&mut self, key: &str) {
+        if let Encryptable::Encrypted(cipher) = &self.source {
+            self.source = Encryptable::Plain(
+                encryption::decrypt_data(key, cipher, &self.nonce, &self.salt).unwrap(),
+            );
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
