@@ -79,7 +79,5 @@ mod tests {
 
         secret.decrypt_source(key);
         assert!(secret.source.is_plain());
-        
-        dbg!(&secret);
     }
 }
