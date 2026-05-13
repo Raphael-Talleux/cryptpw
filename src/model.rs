@@ -49,3 +49,37 @@ impl Encryptable {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Create SECRET test with cipher
+    fn create_encrypted_secret(key: &str) -> Secret {
+        let (cipher, nonce, salt) =
+            encryption::encrypt_data(key, "Test encrypted date", None, None).unwrap();
+
+        Secret {
+            source: Encryptable::Encrypted(cipher.clone()),
+            _password: Encryptable::Encrypted(cipher),
+            nonce,
+            salt,
+        }
+    }
+
+    #[test]
+    fn test_decrypt_source() {
+        let key = "test_key";
+        let mut secret = create_encrypted_secret(key);
+
+        assert!(secret.source.is_encrypted());
+        secret.decrypt_source(key);
+        assert!(secret.source.is_plain());
+
+        secret.decrypt_source(key);
+        assert!(secret.source.is_plain());
+        
+        dbg!(&secret);
+    }
+}
