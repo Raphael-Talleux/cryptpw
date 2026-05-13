@@ -39,14 +39,17 @@ pub fn exec(_ctx: &AppContext, _args: &clap::ArgMatches) -> Result<(), Box<dyn s
 fn fuzzy_filter(secret_list: Vec<model::Secret>, query: &str) -> Vec<model::Secret> {
     let query = query.trim().to_lowercase();
 
-    // TODO check if secret.source is encrypted
-
     // Calculate fuzzy score for each secret
     const FUZZY_SCORE_THRESHOLD: f32 = 0.6;
 
     let mut results: Vec<(f32, Secret)> = secret_list
         .into_iter()
         .filter_map(|secret| {
+            if !secret.source.is_plain() {
+                println!("ERROR: apply fuzzy filter to encrypted secret source.");
+                return None;
+            }
+
             let source = secret.as_source_plaintext("").trim().to_lowercase();
             let score = jaro_winkler(source.as_str(), &query);
             (score >= FUZZY_SCORE_THRESHOLD).then_some((score, secret))
